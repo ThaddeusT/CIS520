@@ -29,6 +29,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
+static struct list waitingThreads_List;
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -37,6 +38,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init (&waitingThreads_List);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -90,10 +92,15 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-
+  int64_t stop = start+ticks;
+  struct thread t = thread_current ();
+  t->wakeUpTime=stop;
+  list_push_back (&ready_list, &t->elem);
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  if(timer_ticks()<stop)
+  {
+	sema_down(&t);
+  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -171,6 +178,13 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+  foreach( var t in waitingThreads_List)
+  {
+	if(ticks>= t->wakeUpTime)
+	{
+		t->sema_up(&t);
+	}
+  }
   thread_tick ();
 }
 
