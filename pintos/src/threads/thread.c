@@ -470,8 +470,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-  sema_init(&waitT,0);
-  wakeUpTime = 0;
+  sema_init(&t->waitT,0);
+  t->wakeUpTime = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

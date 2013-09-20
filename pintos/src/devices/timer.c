@@ -93,13 +93,13 @@ timer_sleep (int64_t ticks)
 {
   int64_t start = timer_ticks ();
   int64_t stop = start+ticks;
-  struct thread t = thread_current ();
+  struct thread *t = thread_current ();
   t->wakeUpTime=stop;
   list_push_back (&waitingThreads_List, &t->elem);
   ASSERT (intr_get_level () == INTR_ON);
   if(timer_ticks()<stop)
   {
-	sema_down(&t);
+	sema_down(&t->waitT);
   }
 }
 
@@ -182,7 +182,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   {
 	if(ticks>= t->wakeUpTime)
 	{
-		t->sema_up(&t);
+		t->sema_up(&t->waitT);
 	}
   }
   thread_tick ();
@@ -258,3 +258,4 @@ real_time_delay (int64_t num, int32_t denom)
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
 }
+
