@@ -95,7 +95,7 @@ timer_sleep (int64_t ticks)
   int64_t stop = start+ticks;
   struct thread t = thread_current ();
   t->wakeUpTime=stop;
-  list_push_back (&ready_list, &t->elem);
+  list_push_back (&waitingThreads_List, &t->elem);
   ASSERT (intr_get_level () == INTR_ON);
   if(timer_ticks()<stop)
   {
