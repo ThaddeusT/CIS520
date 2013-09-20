@@ -6,9 +6,9 @@ CIS 520 - Programming Project #1
 
 >> Fill in the names and email addresses of your group members.
 
+Thaddeus Thomas Tuck thaddeus@k-state.edu
 Chuohao Jiang chuohaoj@ksu.edu
-FirstName LastName <email@k-state.edu>
-...
+Peng Tan
 
 ---- PRELIMINARIES ----
 
