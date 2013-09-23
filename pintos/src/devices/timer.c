@@ -177,14 +177,17 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  struct list_elem *e;
   ticks++;
-  foreach( var t in waitingThreads_List)
-  {
-	if(ticks>= t->wakeUpTime)
+  for (e = list_begin (&waitingThreads_List); e != list_end (&waitingThreads_List);
+       e = list_next (e))
+    {
+      struct thread *t = list_entry (e, struct thread, allelem);
+      if(ticks>= t->wakeUpTime)
 	{
-		t->sema_up(&t->waitT);
+		sema_up(&t->waitT);
 	}
-  }
+    }
   thread_tick ();
 }
 
