@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "synch.h"
 
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -94,6 +95,7 @@ struct thread
 	int64_t wakeUpTime;					/* Timer wake up time. */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem waitelem;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

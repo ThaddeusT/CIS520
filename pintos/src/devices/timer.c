@@ -38,6 +38,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  printf("Initializing list of waiting threads.\n");
   list_init (&waitingThreads_List);
 }
 
@@ -93,12 +94,16 @@ timer_sleep (int64_t ticks)
 {
   int64_t start = timer_ticks ();
   int64_t stop = start+ticks;
+  printf("Stop for thread = %d \n", stop);
   struct thread *t = thread_current ();
   t->wakeUpTime=stop;
-  list_push_back (&waitingThreads_List, &t->elem);
+  intr_disable();
+  list_push_back (&waitingThreads_List, &t->waitelem);
+  intr_enable();
   ASSERT (intr_get_level () == INTR_ON);
   if(timer_ticks()<stop)
   {
+	printf("Putting thread to sleep thread \n");
 	sema_down(&t->waitT);
   }
 }
@@ -179,16 +184,20 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   struct list_elem *e;
   ticks++;
+  thread_tick ();
   for (e = list_begin (&waitingThreads_List); e != list_end (&waitingThreads_List);
        e = list_next (e))
     {
-      struct thread *t = list_entry (e, struct thread, allelem);
+      struct thread *t = list_entry (e, struct thread, waitelem);
       if(ticks>= t->wakeUpTime)
 	{
+		printf("Waking up thread\n");
 		sema_up(&t->waitT);
+		intr_disable();
+		list_remove (&t->waitelem);
+		intr_enable();
 	}
     }
-  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
@@ -261,4 +270,3 @@ real_time_delay (int64_t num, int32_t denom)
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
 }
-
