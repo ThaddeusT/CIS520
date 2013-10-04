@@ -339,33 +339,72 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY. */
+/* Sets the current thread's priority to NEW_PRIORITY. Change here*/
 void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
 }
 
-/* Returns the current thread's priority. */
+/* Returns the current thread's priority. Change here*/
 int
 thread_get_priority (void) 
 {
   return thread_current ()->priority;
 }
 
+//change here
+bool
+thread_lower_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
+{
+	const struct thread *a = list_entry(a_, struct thread, elem);
+	const struct thread *b = list_entry(b_, struct thread, elem);
+	
+	return a-> priority < b -> priority;
+}
+
+
+/* when thread have lower priority will yield immidiately. Change here*/
+void
+thread_yield_to_higher_priority()
+{
+	enum intr_level old_level = intr_disable();
+	if(!list_empty (& ready_list))
+		{
+			struct thread *cur = thread_current();
+			struct thread *max = list_entry(list_max (&ready_list, thread_lower_priority, NULL), struct thread, elem);
+			
+			if(max->priority > cur->priority){
+				if(intr_context())
+					intr_yield_on_reurn();
+				else
+						thread_yield();
+			}
+		}
+		intr_set_level (old_level);
+}
+
+//change here
+void 
+thread_donation(void)
+{
+	struct thread *donater;
+	
+}
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+	thread_current() -> nice = UNUSED;
+  /* Not yet implemented. change here*/
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /* Not yet implemented. change here*/
+  return thread_current() -> nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -373,6 +412,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
+	
   return 0;
 }
 
@@ -470,8 +510,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-  sema_init(&t->waitT,0);
-  t->wakeUpTime = 0;
+  sema_init(&waitT,0);
+  wakeUpTime = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -491,15 +531,50 @@ alloc_frame (struct thread *t, size_t size)
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
-   idle_thread. */
+   idle_thread. Change here*/
 static struct thread *
 next_thread_to_run (void) 
 {
-  if (list_empty (&ready_list))
-    return idle_thread;
-  else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+
+	struct  list_elem *e;
+	int 	priNum = list_begin(&ready_list) -> priority;
+	struct thread *pre = list_begin(&ready_list);
+	struct thread *temp = list_begin(&ready_list) -> next;
+
+    if (list_empty(&ready_list))
+    	return idle_thread;
+    else
+	{
+		for (e = list_begin (&ready_list); e != list_end (&ready_list);
+		   e = list_next (e)){
+				if(priNum< e -> priority)
+					priNum = e.priority;
+		}
+		while(ready_list -> next != NULL)
+		{
+			if(pre -> priority == priNum)
+			{
+				ready_list.erase(*pre);
+				return pre;
+			}
+			else if(temp -> priority == priNum)
+			{
+					ready_list.erase(*temp);
+					if(temp -> next == NULL) pre -> next = NULL;
+					else pre -> next = temp -> next;
+					return temp;
+			}
+			else
+			{
+				pre = temp;
+				temp = temp -> next;
+			}
+		}
+	}
+    //return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
+
+
 
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
