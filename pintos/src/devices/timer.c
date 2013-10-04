@@ -38,7 +38,6 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  printf("Initializing list of waiting threads.\n");
   list_init (&waitingThreads_List);
 }
 
@@ -94,7 +93,6 @@ timer_sleep (int64_t ticks)
 {
   int64_t start = timer_ticks ();
   int64_t stop = start+ticks;
-  printf("Stop for thread = %d \n", stop);
   struct thread *t = thread_current ();
   t->wakeUpTime=stop;
   intr_disable();
@@ -103,7 +101,6 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   if(timer_ticks()<stop)
   {
-	printf("Putting thread to sleep thread \n");
 	sema_down(&t->waitT);
   }
 }
@@ -191,11 +188,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
       struct thread *t = list_entry (e, struct thread, waitelem);
       if(ticks>= t->wakeUpTime)
 	{
-		printf("Waking up thread\n");
 		sema_up(&t->waitT);
-		intr_disable();
 		list_remove (&t->waitelem);
-		intr_enable();
 	}
     }
 }
