@@ -70,9 +70,11 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+
 static void bool thread_lower_priority (const struct list_elem *a, const struct list_elem *b);
 static void thread_yield_to_higher_priority(void);
-static int thread_load_average;
+static int thread_load_average;      //new 
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -178,7 +180,7 @@ thread_create (const char *name, int priority,
 
   ASSERT (function != NULL);
 
-  ASSERT(priority >= PRI_MIN && priority <= PRI_MAX);
+  ASSERT(priority >= PRI_MIN && priority <= PRI_MAX); // new
   
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
@@ -214,8 +216,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  if(thread_mlfqs == true
-  
+  if(thread_mlfqs == true)
+	
+  if(priority > thread_current() -> priority)
+	thread_yield_to_higher_priority();
   
   
   
@@ -260,11 +264,7 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   //list_push_back (&ready_list, &t->elem);
-  list_insert_ordered (&ready_list, &t -> elem,
-  
-  
-  
-  
+  list_insert_ordered (&ready_list, &t -> elem, thread_lower_priority, NULL);   //new
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -326,7 +326,7 @@ thread_exit (void)
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
 void
-thread_yield (struct thread *cur)  // new  void
+thread_yield (void)  
 {
   struct thread *cur = thread_current ();
   enum intr_level old_level;
@@ -336,10 +336,32 @@ thread_yield (struct thread *cur)  // new  void
   old_level = intr_disable ();
   if (cur != idle_thread) 
     //list_push_back (&ready_list, &cur->elem);
-	list_insert_ordered (&ready_list, &cur -> elem, thread_insert_less_head, NULL);
+	list_insert_ordered (&ready_list, &cur -> elem, thread_lower_priority, NULL); //new
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
+}
+
+void
+thread_yield_to_higher_priority(void)
+{
+	enum intr_level old_level = intr_disable();
+	if(!list_empty(& ready_list))
+	{
+		struct thread *cur = thread_current();
+		struct thread *max = list_entry (list_max (&ready_list, 
+			thread_lower_priority, NULL), struct thread, elem);
+		if(max->priority > cur -> priority)
+		{
+			if(intr_context())
+				intr_yield_on_return();
+			else
+				thread_yield();
+		}
+	}
+	cur -> statue = THREAD_READY;
+	schedule();
+	intr_set_level (old_level);
 }
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
@@ -363,7 +385,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  //thread_current ()->priority = new_priority;
+  thread_priority_donation(thread_current(), new_priority, true);   //new
 }
 
 /* Returns the current thread's priority. */
@@ -373,27 +396,7 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-void
-thread_yield_to_higher_priority(void)
-{
-	enum intr_level old_level = intr_disable();
-	if(!list_empty(& ready_list))
-	{
-		struct thread *cur = thread_current();
-		struct thread *max = list_entry (list_max (&ready_list, 
-			thread_lower_priority, NULL), struct thread, elem);
-		if(max->priority > cur -> priority)
-		{
-			if(intr_context())
-				intr_yield_on_return();
-			else
-				thread_yield();
-		}
-	}
-	intr_set_level (old_level);
-}
-
-bool 
+static bool 
 thread_low_priority(const strcut list_elem *a_,
 					const struct list_elem *b_,
 					void *aux UNUSED)
@@ -420,18 +423,23 @@ thread_priority_donation(struct thread *cur, int donation_priority, bool notDona
 	if (cur -> statue == 1)
 	{
 		list_remove(&cur -> elem);
-		list_insert_ordered (&ready_list, &cur -> elem, thread_insert_less_tail, NULL);
+		list_insert_ordered (&ready_list, &cur -> elem, thread_lower_priority, NULL);
 	}
 	else if(cur -> statue == 0 && list_entry(list_begin(&ready_list), struct thread, elem) -> priority > donation_priority)
 	{
-		thread_yield_head(cur);
+		thread_yield_to_higher_priority();
 	}
 }
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-	thread_current() -> nice = nice
+	thread_current() -> nice = nice;
+	//thread_
+	//ASSERT(list_empty(&ready_list) == false);
+	//list_sort(&ready_list, thread_low_priority); // new
+	
+	
   /* Not yet implemented. */
 }
 
@@ -448,7 +456,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
-  return 0;
+  return thread_load_average;  //new
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -457,6 +465,14 @@ thread_get_recent_cpu (void)
 {
   /* Not yet implemented. */
   return 0;
+}
+
+static void
+thread_ccalculate_cpu(void)
+{
+	struct thread *cur = thread_current();
+	ASSERT (cur == idle_thread);
+	int 
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
