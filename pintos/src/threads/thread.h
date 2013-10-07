@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-
+#include "synch.h"
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -94,6 +94,9 @@ struct thread
 	int initPriority;					//new
 	struct list locksInThread;			//new
 	struct lock *blocked;				//new
+	struct semaphore waitT;
+	int64_t wakeUpTime;
+	
 	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
