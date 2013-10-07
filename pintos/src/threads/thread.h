@@ -4,8 +4,6 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "synch.h"
-
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -91,14 +89,18 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-	struct semaphore waitT;    			/* Timer wait semaphore. */
-	int64_t wakeUpTime;					/* Timer wake up time. */
+	
+	bool alreadyDonated;				//new
+	int initPriority;					//new
+	struct list locksInThread;			//new
+	struct lock *blocked;				//new
+	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct list_elem waitelem;
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
-    uint32_t *pagedir;                  /* Page directory. */
+    uint32_t *pagedir; 	/* Page directory. */
 #endif
 
     /* Owned by thread.c. */
@@ -109,6 +111,9 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
+static void bool thread_lower_priority (const struct list_elem *a, const struct list_elem *b);
+static void thread_yield_to_higher_priority(void);
 
 void thread_init (void);
 void thread_start (void);

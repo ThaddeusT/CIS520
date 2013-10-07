@@ -71,9 +71,10 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-static void bool thread_lower_priority (const struct list_elem *a, const struct list_elem *b);
+static bool thread_lower_priority(const strcut list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
 static void thread_yield_to_higher_priority(void);
-static int thread_load_average;      //new 
+static void thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated);
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -102,7 +103,6 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-  thread_load_average = 0;   //new
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -216,16 +216,8 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  if(thread_mlfqs == true)
-	
   if(priority > thread_current() -> priority)
 	thread_yield_to_higher_priority();
-  
-  
-  
- 
- 
- 
 	
   return tid;
 }
@@ -397,7 +389,7 @@ thread_get_priority (void)
 }
 
 static bool 
-thread_low_priority(const strcut list_elem *a_,
+thread_lower_priority(const strcut list_elem *a_,
 					const struct list_elem *b_,
 					void *aux UNUSED)
 {
@@ -407,15 +399,15 @@ thread_low_priority(const strcut list_elem *a_,
 	return a-> priority < b -> priority;
 }
 
-void 
+static void 
 thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated)
 {
 	if(!cur -> alreadyDonated)
-		cur -> priority = cur -> init_priority = donation_priority;
+		cur -> priority = cur -> initPriority = donation_priority;
 	else if(notDonated == true)
 	{
 		if(cur -> priority > donation_priority)
-			cur -> init_priority = donation_priority;
+			cur -> initPriority = donation_priority;
 	}
 	else
 		cur -> priority = donation_priority;
@@ -434,12 +426,7 @@ thread_priority_donation(struct thread *cur, int donation_priority, bool notDona
 void
 thread_set_nice (int nice) 
 {
-	thread_current() -> nice = nice;
-	//thread_
-	//ASSERT(list_empty(&ready_list) == false);
-	//list_sort(&ready_list, thread_low_priority); // new
-	
-	
+  thread_current() -> nice = nice;
   /* Not yet implemented. */
 }
 
@@ -456,7 +443,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
-  return thread_load_average;  //new
+  return 0;  
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -467,13 +454,6 @@ thread_get_recent_cpu (void)
   return 0;
 }
 
-static void
-thread_ccalculate_cpu(void)
-{
-	struct thread *cur = thread_current();
-	ASSERT (cur == idle_thread);
-	int 
-}
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -558,7 +538,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  t->priority = priority;
+  //t->priority = priority;
+  t -> initPriority = t -> priority = priority;
+  t -> alreadyDonated = false;
+  t -> blocked = NULL;
+  list_init (&t -> locksInThread);
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
