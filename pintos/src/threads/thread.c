@@ -71,9 +71,9 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-static bool thread_lower_priority(const strcut list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
-static void thread_yield_to_higher_priority(void);
-static void thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated);
+bool thread_lower_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux);
+void thread_yield_to_higher_priority(void);
+void thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated);
 
 
 /* Initializes the threading system by transforming the code
@@ -255,7 +255,6 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //list_push_back (&ready_list, &t->elem);
   list_insert_ordered (&ready_list, &t -> elem, thread_lower_priority, NULL);   //new
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -337,10 +336,10 @@ thread_yield (void)
 void
 thread_yield_to_higher_priority(void)
 {
+	struct thread *cur = thread_current();
 	enum intr_level old_level = intr_disable();
 	if(!list_empty(& ready_list))
 	{
-		struct thread *cur = thread_current();
 		struct thread *max = list_entry (list_max (&ready_list, 
 			thread_lower_priority, NULL), struct thread, elem);
 		if(max->priority > cur -> priority)
@@ -351,7 +350,7 @@ thread_yield_to_higher_priority(void)
 				thread_yield();
 		}
 	}
-	cur -> statue = THREAD_READY;
+	cur -> status = THREAD_READY;
 	schedule();
 	intr_set_level (old_level);
 }
@@ -388,8 +387,8 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-static bool 
-thread_lower_priority(const strcut list_elem *a_,
+bool 
+thread_lower_priority(const struct list_elem *a_,
 					const struct list_elem *b_,
 					void *aux UNUSED)
 {
@@ -399,7 +398,7 @@ thread_lower_priority(const strcut list_elem *a_,
 	return a-> priority < b -> priority;
 }
 
-static void 
+void 
 thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated)
 {
 	if(!cur -> alreadyDonated)
@@ -412,12 +411,12 @@ thread_priority_donation(struct thread *cur, int donation_priority, bool notDona
 	else
 		cur -> priority = donation_priority;
 	
-	if (cur -> statue == 1)
+	if (cur -> status == 1)
 	{
 		list_remove(&cur -> elem);
 		list_insert_ordered (&ready_list, &cur -> elem, thread_lower_priority, NULL);
 	}
-	else if(cur -> statue == 0 && list_entry(list_begin(&ready_list), struct thread, elem) -> priority > donation_priority)
+	else if(cur -> status == 0 && list_entry(list_begin(&ready_list), struct thread, elem) -> priority > donation_priority)
 	{
 		thread_yield_to_higher_priority();
 	}
@@ -426,7 +425,6 @@ thread_priority_donation(struct thread *cur, int donation_priority, bool notDona
 void
 thread_set_nice (int nice) 
 {
-  thread_current() -> nice = nice;
   /* Not yet implemented. */
 }
 
@@ -435,7 +433,7 @@ int
 thread_get_nice (void) 
 {
   /* Not yet implemented. */
-  return thread_current() -> nice;
+  return 0;
 }
 
 /* Returns 100 times the system load average. */
@@ -538,13 +536,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  //t->priority = priority;
   t -> initPriority = t -> priority = priority;
   t -> alreadyDonated = false;
   t -> blocked = NULL;
   list_init (&t -> locksInThread);
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+  sema_init(&t -> waitT, 0);
+  t -> wakeUpTime = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -660,3 +659,4 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
