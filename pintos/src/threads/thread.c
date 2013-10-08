@@ -411,12 +411,12 @@ thread_priority_donation(struct thread *cur, int donation_priority, bool notDona
 	else
 		cur -> priority = donation_priority;
 	
-	if (cur -> status == 1)
+	if (cur -> status == THREAD_READY)
 	{
 		list_remove(&cur -> elem);
 		list_insert_ordered (&ready_list, &cur -> elem, thread_lower_priority, NULL);
 	}
-	else if(cur -> status == 0 && list_entry(list_begin(&ready_list), struct thread, elem) -> priority > donation_priority)
+	else if(cur -> status == THREAD_RUNNING && list_entry(list_begin(&ready_list), struct thread, elem) -> priority > donation_priority)
 	{
 		thread_yield_to_higher_priority();
 	}
@@ -659,4 +659,3 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-

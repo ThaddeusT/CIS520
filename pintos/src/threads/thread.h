@@ -96,7 +96,7 @@ struct thread
 	struct lock *blocked;				//new
 	struct semaphore waitT;
 	int64_t wakeUpTime;
-	
+	struct list_elem waitelem;
 	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -115,8 +115,9 @@ struct thread
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
 
-static void bool thread_lower_priority (const struct list_elem *a, const struct list_elem *b);
-static void thread_yield_to_higher_priority(void);
+bool thread_lower_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux);
+void thread_yield_to_higher_priority(void);
+void thread_priority_donation(struct thread *cur, int donation_priority, bool notDonated);
 
 void thread_init (void);
 void thread_start (void);
