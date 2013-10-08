@@ -31,7 +31,6 @@
 #include <string.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-#include "threads/thread.c"
 
 bool lock_low_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
 bool condition_low_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
