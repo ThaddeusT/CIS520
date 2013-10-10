@@ -17,6 +17,12 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+/* My Implementation */
+#include "threads/malloc.h"
+#include "userprog/syscall.h"
+#include "vm/vm.h"
+#include "filesys/inode.h"
+/* == My Implementation */
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -31,15 +37,51 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  /* My Implementation */
+  char *save;
+  char *fn;
+  
+  struct thread *t;
+  
+  tid = TID_ERROR;
+  /* == My Implementation */
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-
+  
+  /* My Implementation */
+  fn = malloc (strlen (file_name) + 1);
+  if (!fn)
+    goto done;
+  memcpy (fn, file_name, strlen (file_name) + 1);
+  file_name = strtok_r (fn, " ", &save);
+  /* == My Implementation */
+  
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  /* Old Implementation 
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy); */
+  
+  /* My Implementation */
+  tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
+  if (tid == TID_ERROR)
+    goto done;
+  /* Wait for child thread to load */
+  t = get_thread_by_tid (tid);
+  sema_down (&t->wait);
+  if (t->ret_status == -1)
+    tid = TID_ERROR;
+  while (t->status == THREAD_BLOCKED)
+    thread_unblock (t);
+  if (t->ret_status == -1)
+    process_wait (t->tid);
+  
+done:
+  free (fn);
+  /* == My Implementation */
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -54,17 +96,100 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  /* My Implementation */
+  char *token, *save_ptr;
+  void *start;
+  int argc, i;
+  int *argv_off; /* Maximum of 2 arguments */
+  size_t file_name_len;
+  struct thread *t;
+  /* == My Implementation */
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+  
+  /* My Implementation */
+  t = thread_current ();
+  argc = 0;
+  argv_off = malloc (32 * sizeof (int));
+  if (!argv_off)
+    goto exit;
+  file_name_len = strlen (file_name);
+  argv_off[0] = 0;
+  for (
+       token = strtok_r (file_name, " ", &save_ptr);
+       token != NULL;
+       token = strtok_r (NULL, " ", &save_ptr)
+       )
+        {
+          while (*(save_ptr) == ' ')
+            ++save_ptr;
+          argv_off[++argc] = save_ptr - file_name;
+        }
+  t->pagedir = pagedir_create ();
+  if (t->pagedir == NULL) 
+    goto exit;
+  process_activate ();
+  vm_pagedir_create (t->pagedir); /* initialize the supplemental page table */
+  /* == My Implementation */
+  
   success = load (file_name, &if_.eip, &if_.esp);
+  
+  /* My Implementation */
+  /* Setting up stack */
+  if (success)
+    {
+      t->self = filesys_open (file_name);
+      file_deny_write (t->self);
+      t->user_stack = PHYS_BASE - PGSIZE;
+      if_.esp -= file_name_len + 1;
+      start = if_.esp;
+      memcpy (if_.esp, file_name, file_name_len + 1);
+      if_.esp -= 4 - (file_name_len + 1) % 4; /* alignment */
+      if_.esp -= 4;
+      *(int *)(if_.esp) = 0; /* argv[argc] == 0 */
+      /* Now pushing argv[x], and this is where the fun begins */
+      for (i = argc - 1; i >= 0; --i)
+        {
+          if_.esp -= 4;
+          *(void **)(if_.esp) = start + argv_off[i]; /* argv[x] */
+        }
 
+      if_.esp -= 4;
+      *(char **)(if_.esp) = (if_.esp + 4); /* argv */
+      if_.esp -= 4;
+      *(int *)(if_.esp) = argc;
+      if_.esp -= 4;
+      *(int *)(if_.esp) = 0; /* Fake return address */
+      
+      sema_up (&t->wait);
+      intr_disable ();
+      thread_block ();
+      intr_enable ();
+    }
+  else
+    {
+      free (argv_off);
+exit:
+      t->ret_status = -1;
+      sema_up (&t->wait);
+      intr_disable ();
+      thread_block ();
+      intr_enable ();
+      thread_exit ();
+    }
+  
+  free (argv_off);
+  /* == My Implementation */
+  
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
+  /* Old Implementation 
+  if (!success)   
+    thread_exit (); */
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -86,9 +211,35 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid /* Old Implementation UNUSED */) 
 {
-  return -1;
+  /* Old Implementation
+  return -1; */
+  
+  /* My Implementation */
+  struct thread *t;
+  int ret;
+  
+  ret = -1;
+  t = get_thread_by_tid (child_tid);
+  if (!t || t->status == THREAD_DYING || t->ret_status == RET_STATUS_INVALID)
+    goto done;
+  if (t->ret_status != RET_STATUS_DEFAULT && t->ret_status != RET_STATUS_INVALID)
+    {
+      ret = t->ret_status;
+      goto done;
+    }
+
+  sema_down (&t->wait);
+  ret = t->ret_status;
+  printf ("%s: exit(%d)\n", t->name, t->ret_status);
+  while (t->status == THREAD_BLOCKED)
+    thread_unblock (t);
+  
+done:
+  t->ret_status = RET_STATUS_INVALID;
+  return ret;
+  /* == My Implementation */
 }
 
 /* Free the current process's resources. */
@@ -98,6 +249,21 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+  /* My Implementation */
+  while (!list_empty (&cur->wait.waiters))
+    sema_up (&cur->wait);
+  file_close (cur->self);
+  vm_pagedir_destroy (cur->pagedir);
+  cur->self = NULL;
+  cur->exited = true;
+  if (cur->parent)
+    {
+      intr_disable ();
+      thread_block ();
+      intr_enable ();
+    }
+  /* == My Implementation */
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -216,10 +382,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   int i;
 
   /* Allocate and activate page directory. */
+  /* Old Implmentation
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
-  process_activate ();
+  process_activate (); */
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -383,6 +550,16 @@ static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
               uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
 {
+  /* My Implementation */
+  disk_sector_t sector;
+  struct inode *ino;
+  struct thread *t;
+  
+  t = thread_current ();
+  ino = file_get_inode (file);
+  sector = inode_get_inumber (ino);
+  /* == My Implementation */
+  
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
@@ -395,7 +572,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
+      
+#ifdef VM
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
@@ -415,6 +593,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           palloc_free_page (kpage);
           return false; 
         }
+#else
+      /* My Implementation */
+      if (page_read_bytes > 0)
+        vm_page_create (t->pagedir, upage, fs, sector);
+      else if (page_zero_bytes > 0)
+        vm_page_create (t->pagedir, upage, swap, SECTOR_ZERO);
+      printf ("UPAGE in load segment: %p\n", upage);
+      sector += SLOT_SIZE;
+      /* == My Implementation */
+#endif
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -437,7 +625,11 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
+        /* Old Implementation
+        *esp = PHYS_BASE; */
+        /* My Implementation */
         *esp = PHYS_BASE;
+        /* == My Implementation */
       else
         palloc_free_page (kpage);
     }

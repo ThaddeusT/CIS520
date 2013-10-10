@@ -8,17 +8,9 @@ CIS 520 - Programming Project #1
 
 Thaddeus Thomas Tuck thaddeus@k-state.edu
 Chuohao Jiang chuohaoj@ksu.edu
-Peng Tan
+Peng Tan peng5462@ksu.edu
 
 ---- PRELIMINARIES ----
-
->> If you have any preliminary comments on your submission, notes for
->> the TA, or extra credit, please give them here.
-
->> Please cite any offline or online sources you consulted while
->> preparing your submission, other than the Pintos documentation,
->> course text, lecture notes, and course staff.
-
 
                  ALARM CLOCK
                  ===========
@@ -28,6 +20,13 @@ Peng Tan
 >> A1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+added threads/alarm.c 
+added threads/alarm.h
+modified threads/init.c
+modified threads/thread.c
+modified threads/thread.h
+modified devices/timer.c
+modified Makefile.build
 
 
 ---- ALGORITHMS ----

@@ -23,17 +23,6 @@ test_alarm_multiple (void)
 {
   test_sleep (5, 7);
 }
-
-test_alarm_mega (void) 
-{
-  test_sleep (5, 100);
-}
-
-void
-test_alarm_many (void) 
-{
-  test_sleep (5, 14);
-}
 
 /* Information about the test. */
 struct sleep_test 
