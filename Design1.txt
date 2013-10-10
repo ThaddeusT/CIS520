@@ -8,7 +8,7 @@ CIS 520 - Programming Project #1
 
 Thaddeus Thomas Tuck thaddeus@k-state.edu
 Chuohao Jiang chuohaoj@ksu.edu
-Peng Tan
+Peng Tan  peng5462@ksu.edu
 
 ---- PRELIMINARIES ----
 
@@ -64,6 +64,19 @@ Peng Tan
 >> B1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+thread
+1. bool alreadyDonated  --  check the thread is alreay donated or not.
+2. int donation  --  the priority number would be donate.
+3. int initPriority  --  the thread's original priority number before the donation.
+4. struct thread* waitingOn  --
+5. strcut lock* blocked  --  
+
+lock
+1. lock_priority
+
+condition
+1. struct threa* holder
 
 >> B2: Explain the data structure used to track priority donation.
 
