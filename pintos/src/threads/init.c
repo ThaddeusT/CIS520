@@ -21,10 +21,9 @@
 #include "threads/palloc.h"
 #include "threads/pte.h"
 #include "threads/thread.h"
-/* My Implementation */
+//change here
 #include "threads/alarm.h"
 #include "vm/vm.h"
-/* == My Implementation */
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "userprog/exception.h"
@@ -87,9 +86,8 @@ main (void)
      then enable console locking. */
   thread_init ();
   
-  /* My Implementation */
+  //Change here
   alarm_init ();
-  /* == My Implementation */
   console_init ();  
 
   /* Greet user. */
@@ -127,11 +125,10 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
-  /* My Implementation */
+  //Change here
 #ifdef VM
   vm_init ();
 #endif
-  /* == My Implementation */
 
   printf ("Boot complete.\n");
   
