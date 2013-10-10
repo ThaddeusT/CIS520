@@ -1,3 +1,7 @@
+/* This file is fully designed and created by Christopher Xu
+ * See README at root directory for details
+ */
+
 #ifndef THREADS_ALARM_H
 #define THREADS_ALARM_H
 

@@ -7,8 +7,10 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+/* My Implementation */
 #include "threads/alarm.h"
 #include "threads/fixed-point.h"
+/* == My Implementation */
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -100,7 +102,13 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  /* Old Implementation
+  int64_t start = timer_ticks (); */
+
   ASSERT (intr_get_level () == INTR_ON);
+  /* Old Implementation
+  while (timer_elapsed (start) < ticks) 
+    thread_yield (); */
     
   /* My Implementation */
   set_alarm (ticks);
@@ -196,7 +204,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     if (ticks % 4 == 3)
       thread_calculate_priority_for_all ();
   }
-  alarm_check (); 
+  alarm_check (); /* Check the alarm and wake up threads */
   /* == My Implementation */
 }
 

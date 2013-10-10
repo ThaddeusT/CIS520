@@ -137,7 +137,7 @@ sema_up (struct semaphore *sema)
   
   /* My Implementation */
   if (wake_up != NULL && wake_up->priority > curr->priority)
-    thread_yield_higher_prioprity (curr);
+    thread_yield_head (curr);
   /* == My Implementation */
   
   intr_set_level (old_level);
