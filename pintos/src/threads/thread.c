@@ -550,6 +550,7 @@ thread_calculate_recent_cpu_other (struct thread *curr)
   curr->recent_cpu = INT_ADD (FP_MUL (FP_DIV (load, INT_ADD (load, 1)), curr->recent_cpu), curr->nice);
 }
 
+//change here
 void
 thread_calculate_priority_for_all (void)
 {
@@ -567,6 +568,7 @@ thread_calculate_priority_for_all (void)
   sort_thread_list (&ready_list);
 }
 
+//change here
 static void
 thread_calculate_priority_other (struct thread *curr)
 {
