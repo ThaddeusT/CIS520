@@ -479,7 +479,7 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice /* Old Implementation UNUSED */) 
+thread_set_nice (int nice ) 
 {
   ASSERT (nice >= NICE_MIN && nice <= NICE_MAX);
   
