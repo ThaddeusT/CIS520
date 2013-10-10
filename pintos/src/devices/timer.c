@@ -7,10 +7,10 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-/* My Implementation */
+ 
 #include "threads/alarm.h"
 #include "threads/fixed-point.h"
-/* == My Implementation */
+ 
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -110,9 +110,9 @@ timer_sleep (int64_t ticks)
   while (timer_elapsed (start) < ticks) 
     thread_yield (); */
     
-  /* My Implementation */
+   
   set_alarm (ticks);
-  /* == My Implementation */
+   
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -192,7 +192,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   
-  /* My Implementation */
+   
   if (thread_mlfqs)
   {
     thread_current ()->recent_cpu = INT_ADD (thread_current ()->recent_cpu, 1);
@@ -205,7 +205,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
       thread_calculate_priority_for_all ();
   }
   alarm_check (); /* Check the alarm and wake up threads */
-  /* == My Implementation */
+   
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
