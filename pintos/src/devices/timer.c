@@ -102,9 +102,9 @@ timer_sleep (int64_t ticks)
 {
   ASSERT (intr_get_level () == INTR_ON);
     
-  /* My Implementation */
+  //change here
   set_alarm (ticks);
-  /* == My Implementation */
+  
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -184,7 +184,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   
-  /* My Implementation */
+  //change here
   if (thread_mlfqs)
   {
     thread_current ()->recent_cpu = INT_ADD (thread_current ()->recent_cpu, 1);
@@ -197,7 +197,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
       thread_calculate_priority_for_all ();
   }
   alarm_check (); 
-  /* == My Implementation */
+
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

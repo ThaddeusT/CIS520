@@ -1,5 +1,6 @@
 #include "threads/thread.h"
-/* My Implementation */
+
+//change here
 #include "threads/alarm.h"
 #include "threads/fixed-point.h"
 
@@ -75,7 +76,7 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-/* My Implementation */
+//change here
 static bool  thread_low_priority (const struct list_elem *lhs, const struct list_elem *rhs, void *aux UNUSED);
 static bool thread_insert_less_head (const struct list_elem *lhs, const struct list_elem *rhs, void *aux UNUSED);
 
@@ -83,7 +84,7 @@ static void thread_calculate_priority_other (struct thread *curr);
 static void thread_calculate_recent_cpu_other (struct thread *curr);
 
 static int load_avg;
-/* == My Implementation */
+
 
 
 /* Initializes the threading system by transforming the code
@@ -114,9 +115,9 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   
-  /* My Implementation */
+  //change here
   load_avg = 0;
-  /* == My Implementation */
+  
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -194,9 +195,9 @@ thread_create (const char *name, int priority,
 
   ASSERT (function != NULL);
   
-  /* My Implementation */
+  //change here
   ASSERT (priority >= PRI_MIN && priority <= PRI_MAX);
-  /* == My Implementation */
+  
 
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
@@ -231,7 +232,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
   
-  /* My Implementation */
+  //change here
   if (thread_mlfqs)
     thread_calculate_priority_other (t);
 
@@ -248,7 +249,7 @@ thread_create (const char *name, int priority,
   t->parent = thread_current ();
   t->exited = false;
 #endif
-  /* == My Implementation */
+  
   
   return tid;
 }
@@ -286,11 +287,10 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  /* Old Implementation
-  list_push_back (&ready_list, &t->elem); */
-  /* My Implementation */
+	
+  //change here
   list_insert_ordered (&ready_list, &t->elem,  thread_low_priority, NULL);
-  /* == My Implementation */
+  
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -336,7 +336,7 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  /* My Implementation */
+  //change here
   struct list_elem *l;
   struct thread *t, *cur;
   
@@ -354,14 +354,15 @@ thread_exit (void)
         }
         
     }
-  /* == My Implementation */
+  
   process_exit ();
-  /* My Implementation */
+	
+  //change here
   ASSERT (list_size (&cur->files) == 0);
   
   if (cur->parent && cur->parent != initial_thread)
     list_remove (&cur->children_elem);
-  /* == My Implementation */
+  
   
 #endif
 
@@ -387,17 +388,16 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    /* Old Implementation
-    list_push_back (&ready_list, &cur->elem); */
-    /* My Implementation */
+	
+    //change here
     list_insert_ordered (&ready_list, &cur->elem,  thread_low_priority, NULL);
-    /* == My Implementation */
+    
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
 }
 
-/* My Implementation */
+//change here
 void
 thread_yield_higher_prioprity (struct thread *cur)
 {
@@ -407,16 +407,15 @@ thread_yield_higher_prioprity (struct thread *cur)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    /* Old Implementation
-    list_push_back (&ready_list, &cur->elem); */
-    /* My Implementation */
+	
+    //change here
     list_insert_ordered (&ready_list, &cur->elem, thread_insert_less_head, NULL);
-    /* == My Implementation */
+    
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
 }
-/* == My Implementation */
+
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -439,14 +438,12 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  /* My Implementation */
+  //change here
   thread_set_priority_other (thread_current (), new_priority, true);
-  /* == My Implementation */
+  
 }
 
-/* My Implementation
- * if they are not the same value
- */
+//change here
 void
 thread_set_priority_other (struct thread *curr, int new_priority, bool forced)
 {
@@ -470,7 +467,7 @@ thread_set_priority_other (struct thread *curr, int new_priority, bool forced)
   else if (curr->status == THREAD_RUNNING && list_entry (list_begin (&ready_list), struct thread, elem)->priority > new_priority)
     thread_yield_higher_prioprity (curr);
 }
-/* == My Implementation */
+
 
 /* Returns the current thread's priority. */
 int
@@ -499,23 +496,21 @@ thread_set_nice (int nice /* Old Implementation UNUSED */)
 int
 thread_get_nice (void) 
 {
-  /* My Implementation */
+  //change here
   return thread_current ()->nice;
-  /* == My Implementation */
+  
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* My Implementation */
+  //change here
   return CONVERT_TO_INT_NEAR (100 * load_avg);
-  /* == My Implementation */
-  /* Old Implementation
-  return 0; */
+  
 }
 
-/* My Implementation */
+//change here
 void
 thread_calculate_load_avg (void)
 {
@@ -588,17 +583,15 @@ thread_calculate_priority_other (struct thread *curr)
     curr->priority = PRI_MIN;
 }
 
-/* == My Implementation */
+
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* My Implementation */
+  //change here
   return CONVERT_TO_INT_NEAR (100 * thread_current ()->recent_cpu);
-  /* == My Implementation */
-  /* Old Implementation
-  return 0; */
+
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -685,9 +678,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   
-  /* Old Implementation
-  t->priority = priority; */
-  /* My Implementation */
+  //change here
   if (!thread_mlfqs)
   {
     t->base_priority = t->priority = priority;
@@ -703,7 +694,7 @@ init_thread (struct thread *t, const char *name, int priority)
     else
       t->recent_cpu = thread_get_recent_cpu ();
   }
-  /* == My Implementation */
+  
   
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
@@ -819,7 +810,7 @@ allocate_tid (void)
   return tid;
 }
 
-/* My Implemenatation */
+//change here
 
 /* Tell list_sort how to sort the ready list,
  * We keep the thread who has outstanding priority at the head of the list
@@ -873,7 +864,6 @@ get_thread_by_tid (tid_t tid)
   return NULL;
 }
 
-/* == My Implementation */
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
