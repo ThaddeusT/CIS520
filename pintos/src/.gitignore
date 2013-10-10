@@ -1,4 +1,6 @@
-cscope.files
-cscope.out
-TAGS
-tags
+*cvs*
+*CVS*
+**/build
+**/bochs*
+.cvsignore
+./**/CVS
