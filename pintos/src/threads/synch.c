@@ -283,7 +283,7 @@ lock_try_acquire (struct lock *lock)
       lock->holder = thread_current ();
       list_push_back (&lock->holder->locks, &lock->holder_elem);
     }
-    /
+    
   return success;
 }
 
